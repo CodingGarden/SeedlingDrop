@@ -1,0 +1,113 @@
+body {
+  margin: 0;
+  padding: 0;
+  background: #333;
+}
+
+h4 {
+  padding: 0;
+  margin: 0;
+}
+
+.leader-board {
+  display: none;
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  font-weight: bold;
+  font-family: sans-serif;
+  font-size: 2rem;
+  padding: 2rem;
+}
+
+.target {
+  position: fixed;
+  width: 30vmin;
+  bottom: -11vmin;
+  height: auto;
+  left: 50%;
+  transform: translateX(-50%) scaleY(0.9);
+}
+
+.drop {
+  position: fixed;
+  width: 150px;
+  display: inline-block;
+  transform: rotate(10deg);
+  animation: sway 1s infinite alternate ease-in-out;
+}
+
+.drop.landed {
+  transform: rotate(0deg);
+  opacity: 0;
+  animation: fadeout 1s;
+  transform-origin: bottom;
+}
+
+.drop.landed .chute {
+  transform: scale(0);
+  animation: shrink 1s ease-in-out;
+  transform-origin: bottom;
+}
+
+.drop .username {
+  font-size: 2.5rem;
+  text-align: center;
+  color: white;
+  font-weight: bold;
+  font-family: sans-serif;
+  text-shadow: -2px -2px 0px black, 0px -2px 0px black, 2px -2px 0px black, -2px 0px 0px black, 0px 0px 0px black, 2px 0px 0px black, -2px 2px 0px black, 0px 2px 0px black, 2px 2px 0px black;
+}
+
+.drop .chute {
+  width: 100%;
+}
+
+.drop .user-image {
+  display: block;
+  margin: 0 auto;
+  width: 56px;
+  height: 56px;
+  margin-top: -20px;
+}
+
+.drop .avatar {
+  width: 100%;
+  height: auto;
+  border-radius: 50%;
+}
+
+.element {
+  animation: pulse 5s infinite;
+}
+
+@keyframes sway {
+  0% {
+    transform: rotate(-10deg);
+  }
+  100% {
+    transform: rotate(10deg);
+  }
+}
+
+@keyframes shrink {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+
+@keyframes fadeout {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+}
