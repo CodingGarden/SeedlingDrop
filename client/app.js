@@ -12,13 +12,12 @@ function createDropElement(url, username, isAvatar = false) {
   <h4 class="username">${username}</h4>
   <img class="chute" src="images/parachute.png" alt="">
   <div class="user-image">
-    <img class="${isAvatar ? 'avatar' : ''}" src="${url}" />
+    <img class="${isAvatar ? 'avatar' : ''}" src="${url || 'images/seed.png'}" />
   </div>`;
   return div;
 }
 
 function doDrop({ username, url, isAvatar = false }) {
-  console.log(username, url);
   currentUsers[username] = true;
   const element = createDropElement(url, username, isAvatar);
   const drop = {
@@ -65,25 +64,56 @@ function update() {
       drop.landed = true;
       drop.element.classList.add('landed');
       const { x } = drop.location;
-      const score = Math.abs(window.innerWidth / 2 - x);
+      const diff = window.innerWidth / 2 - x;
+      const score = Math.abs(diff);
       if (score <= targetHalfWidth) {
         const finalScore = (1 - (score / targetHalfWidth)) * 100;
         leaderBoard.style.display = 'block';
-        highScores.push({
-          username: drop.username,
-          score: finalScore.toFixed(2)
-        });
+        const existingHighScore = highScores.find(h => h.username === drop.username);
+        if (existingHighScore) {
+          if (finalScore > +existingHighScore.score) {
+            existingHighScore.score = finalScore.toFixed(2);
+          }
+        } else {
+          highScores.push({
+            username: drop.username,
+            score: finalScore.toFixed(2)
+          });
+        }
         highScores.sort((a, b) => b.score - a.score);
         highScores = highScores.slice(0, 5);
         renderLeaderBoard();
+        addSeedling(x, finalScore, drop.username);
+        currentUsers[drop.username] = false;
+        drop.element.classList.add('seedling-target');
+      } else {
+        drop.element.classList.add('no-target');
       }
-      drops = drops.filter(d => d != drop);
       setTimeout(() => {
         currentUsers[drop.username] = false;
         document.body.removeChild(drop.element);
-      }, 1000);
+      }, 90000);
+      drops = drops.filter(d => d != drop);
     }
   });
+}
+
+function addSeedling(x, score, username) {
+  const container = document.createElement('div');
+  container.className = 'seedling-container initial';
+  const name = document.createElement('h4');
+  name.className = 'username seedling-target';
+  name.style.fontSize = (score / 100) * 2.5 + 'rem';
+  name.textContent = username;
+  const seedling = document.createElement('img');
+  seedling.className = 'seedling';
+  seedling.src = 'images/seedling.png';
+  seedling.style.height = (score * 1.5) + 'px';
+  container.appendChild(name);
+  container.appendChild(seedling);
+  document.body.appendChild(container);
+  container.style.left = x + 'px';
+  container.style.top = (window.innerHeight - container.clientHeight) + 'px';
 }
 
 function renderLeaderBoard() {
@@ -113,15 +143,27 @@ const client = new tmi.Client({
   channels: [ 'codinggarden' ]
 });
 
+for (let i = 0; i < 10; i++) {
+  doDrop({ username: 'CJ' });
+}
+
+let hideLeaderBoardTimeout = setTimeout(() => {
+  leaderBoard.style.display = 'none';
+}, 90000);
+
 client.connect();
 
 client.on('message', (channel, { emotes, username, 'display-name': displayName }, message) => {
   if (message.startsWith('!drop')) {
     const name = displayName || username;
     if (currentUsers[name]) return;
+    clearTimeout(hideLeaderBoardTimeout);
+    hideLeaderBoardTimeout = setTimeout(() => {
+      leaderBoard.style.display = 'none';
+    }, 90000);
     const args = message.split(' ');
     args.shift();
-    const url = args.length ?  args[0].trim() : '';
+    // const url = args.length ?  args[0].trim() : '';
     if (emotes) {
       const emoteIds = Object.keys(emotes);
       const emote = emoteIds[Math.floor(Math.random() * emoteIds.length)];
@@ -130,7 +172,9 @@ client.on('message', (channel, { emotes, username, 'display-name': displayName }
         username: name,
       });
     } else {
-      console.log(username, url);
+      doDrop({
+        username: name,
+      });
     }
   }
 });

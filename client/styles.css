@@ -17,7 +17,7 @@ h4 {
   background: rgba(0, 0, 0, 0.5);
   color: white;
   font-weight: bold;
-  font-family: sans-serif;
+  font-family: 'Press Start 2P', sans-serif;
   font-size: 2rem;
   padding: 2rem;
 }
@@ -25,24 +25,34 @@ h4 {
 .target {
   position: fixed;
   width: 30vmin;
-  bottom: -11vmin;
+  bottom: -7vmin;
   height: auto;
   left: 50%;
   transform: translateX(-50%) scaleY(0.9);
+  filter: drop-shadow(5px 5px 5px #222);
 }
 
 .drop {
   position: fixed;
   width: 150px;
-  display: inline-block;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   transform: rotate(10deg);
   animation: sway 1s infinite alternate ease-in-out;
 }
 
-.drop.landed {
+.drop.landed.no-target {
   transform: rotate(0deg);
   opacity: 0;
-  animation: fadeout 1s;
+  animation: fadeout 90s;
+  transform-origin: bottom;
+}
+
+.drop.landed.seedling-target {
+  opacity: 0;
+  animation: fadeout 5s;
   transform-origin: bottom;
 }
 
@@ -52,13 +62,23 @@ h4 {
   transform-origin: bottom;
 }
 
-.drop .username {
-  font-size: 2.5rem;
+.username {
+  font-size: 2rem;
   text-align: center;
   color: white;
   font-weight: bold;
-  font-family: sans-serif;
+  font-family: 'Press Start 2P', sans-serif;
   text-shadow: -2px -2px 0px black, 0px -2px 0px black, 2px -2px 0px black, -2px 0px 0px black, 0px 0px 0px black, 2px 0px 0px black, -2px 2px 0px black, 0px 2px 0px black, 2px 2px 0px black;
+}
+
+.drop.landed .username {
+  transform: translateY(110px);
+  animation: move-down 1s ease-in-out;
+}
+
+.username.seedling-target {
+  opacity: 0;
+  animation: fade-only 90s;
 }
 
 .drop .chute {
@@ -71,6 +91,11 @@ h4 {
   width: 56px;
   height: 56px;
   margin-top: -20px;
+  z-index: 999;
+}
+
+.drop .user-image img {
+  width: 100%;
 }
 
 .drop .avatar {
@@ -79,8 +104,20 @@ h4 {
   border-radius: 50%;
 }
 
-.element {
-  animation: pulse 5s infinite;
+.seedling-container {
+  position: fixed;
+  z-index: -1;
+  transform: scale(1) translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  animation: grow 5s linear;
+  transform-origin: bottom;
+}
+
+.seedling-container img {
+  filter: drop-shadow(5px 5px 5px #222);
 }
 
 @keyframes sway {
@@ -101,6 +138,15 @@ h4 {
   }
 }
 
+@keyframes grow {
+  0% {
+    transform: scale(0) translateX(-50%);
+  }
+  100% {
+    transform: scale(1) translateX(-50%);
+  }
+}
+
 @keyframes fadeout {
   0% {
     opacity: 1;
@@ -109,5 +155,23 @@ h4 {
   100% {
     opacity: 0;
     transform: scale(0);
+  }
+}
+
+@keyframes fade-only {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes move-down {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(110px);
   }
 }
