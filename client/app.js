@@ -3,6 +3,7 @@ import config from './config.js';
 const target = document.querySelector('.target');
 const leaderBoard = document.querySelector('.leader-board');
 
+const DEBUG = false;
 let drops = [];
 const currentUsers = {};
 let highScores = [];
@@ -305,3 +306,22 @@ function gameLoop() {
 }
 
 gameLoop();
+
+if(DEBUG) {
+  let focused = true;
+
+  window.onfocus = function () {
+    focused = true;
+  };
+  window.onblur = function () {
+    focused = false;
+  };
+  let id = 1;
+  const testDrop = () => {
+    if (focused) {
+      doDrop({username: `test ${id++}`, url: '/images/seed.png', isAvatar: false, platform: 'debug'});
+    }
+    setTimeout(testDrop, Math.random() * 1000 * 2);
+  };
+  testDrop();
+}
