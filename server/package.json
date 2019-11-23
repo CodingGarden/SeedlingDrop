@@ -1,0 +1,26 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "keywords": [],
+  "author": "CJ R. <cj@null.computer> (https://w3cj.now.sh)",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^6.6.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.18.2"
+  },
+  "dependencies": {
+    "@feathersjs/feathers": "^4.3.10",
+    "@feathersjs/socketio": "^4.3.10",
+    "dotenv": "^8.2.0",
+    "feathers-mongoose": "^8.1.0",
+    "mongoose": "^5.7.8",
+    "node-fetch": "^2.6.0",
+    "tmi.js": "^1.5.0"
+  }
+}

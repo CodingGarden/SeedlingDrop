@@ -1,9 +1,89 @@
+import config from './config.js';
+
 const target = document.querySelector('.target');
 const leaderBoard = document.querySelector('.leader-board');
 
 let drops = [];
 const currentUsers = {};
 let highScores = [];
+
+const highScoreClient = feathers();
+highScoreClient.configure(feathers.socketio(io(config.highScoreServer)));
+const highScoreService = highScoreClient.service('highscores');
+
+let hideLeaderBoardTimeout = setTimeout(() => {
+  leaderBoard.style.display = 'none';
+}, 90000);
+
+let liveChatId = new Date().toLocaleDateString();
+
+(async () => {
+  const socket = io(config.messageServer);
+  liveChatId = await fetch(`${config.messageServer}/streams`)
+    .then(res => res.json())
+    .then(([ event ]) => {
+      if (event) {
+        return event.snippet.liveChatId;
+      }
+      return new Date().toLocaleDateString();
+    });
+  highScores = await highScoreService.find({
+    query: {
+      eventId: liveChatId,
+    }
+  });
+  console.log(highScores);
+  
+  renderLeaderBoard();
+
+  socket.on(`messages/${liveChatId}`, (messages) => {
+    messages.forEach(message => {
+      if (message.message.startsWith('!drop')) {
+        const username = message.author.displayName;
+        if (currentUsers[username]) return;
+        clearTimeout(hideLeaderBoardTimeout);
+        hideLeaderBoardTimeout = setTimeout(() => {
+          leaderBoard.style.display = 'none';
+        }, 90000);
+        const args = message.message.split(' ');
+        args.shift();
+        const arg = args.length ? args[0].trim() : '';
+        const emojis = twemoji.parse(arg, {
+          assetType: 'png'
+        });
+        if (emojis.length) {
+          const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+          doDrop({
+            username,
+            url: emoji.url,
+            platform: message.platform,
+          });
+        } else if (arg === 'me') {
+          doDrop({
+            username,
+            url: message.author.profileImageUrl,
+            isAvatar: true,
+            platform: message.platform,
+          });
+        } else {
+          const emoteMatches = arg.match(/!\[\]\((.*)\)/);
+          if (emoteMatches && emoteMatches[1].startsWith('http')) {
+            doDrop({
+              username,
+              url: emoteMatches[1],
+              platform: message.platform,
+            });
+          } else {
+            doDrop({
+              username,
+              platform: message.platform,
+            });
+          }
+        }
+      }
+    });
+  });
+})();
 
 function createDropElement(url, username, isAvatar = false) {
   const div = document.createElement('div');
@@ -17,11 +97,17 @@ function createDropElement(url, username, isAvatar = false) {
   return div;
 }
 
-function doDrop({ username, url, isAvatar = false }) {
+function doDrop({
+  username,
+  url,
+  isAvatar = false,
+  platform
+}) {
   currentUsers[username] = true;
   const element = createDropElement(url, username, isAvatar);
   const drop = {
     username,
+    platform,
     element,
     location: {
       x: window.innerWidth * Math.random(),
@@ -63,29 +149,27 @@ function update() {
       drop.location.y = window.innerHeight - drop.element.clientHeight;
       drop.landed = true;
       drop.element.classList.add('landed');
-      const { x } = drop.location;
+      const {
+        x
+      } = drop.location;
       const diff = window.innerWidth / 2 - x;
       const score = Math.abs(diff);
       if (score <= targetHalfWidth) {
         const finalScore = (1 - (score / targetHalfWidth)) * 100;
-        leaderBoard.style.display = 'block';
-        const existingHighScore = highScores.find(h => h.username === drop.username);
-        if (existingHighScore) {
-          if (finalScore > +existingHighScore.score) {
-            existingHighScore.score = finalScore.toFixed(2);
-          }
-        } else {
-          highScores.push({
-            username: drop.username,
-            score: finalScore.toFixed(2)
-          });
-        }
-        highScores.sort((a, b) => b.score - a.score);
-        highScores = highScores.slice(0, 5);
+        highScores.push({
+          username: drop.username,
+          score: finalScore.toFixed(2)
+        });
         renderLeaderBoard();
         addSeedling(x, finalScore, drop.username);
         currentUsers[drop.username] = false;
         drop.element.classList.add('seedling-target');
+        highScoreService.create({
+          username: drop.username,
+          score: +finalScore.toFixed(2),
+          platform: drop.platform,
+          eventId: liveChatId,
+        });
       } else {
         drop.element.classList.add('no-target');
       }
@@ -116,9 +200,25 @@ function addSeedling(x, score, username) {
   container.style.top = (window.innerHeight - container.clientHeight) + 'px';
 }
 
-function renderLeaderBoard() {
+function renderLeaderBoard(showBoard = true) {
+  if (showBoard) leaderBoard.style.display = 'block';
+  let uniqueUsers = {};
+  highScores = highScores
+    .sort((a, b) => b.score - a.score)
+    .filter(h => {
+      if (!uniqueUsers[h.username]) {
+        uniqueUsers[h.username] = h;
+        return true;
+      } else if (+h.score > +uniqueUsers[h.username].score) {
+        uniqueUsers[h.username].score = h.score;
+      }
+      return false;
+    }).slice(0, 5);
   const scores = leaderBoard.querySelector('.scores');
-  scores.innerHTML = highScores.reduce((html, { score, username }) => {
+  scores.innerHTML = highScores.reduce((html, {
+    score,
+    username
+  }) => {
     return html + `<p>${score} - ${username}</p>`;
   }, '');
 }
@@ -134,49 +234,3 @@ function gameLoop() {
 }
 
 gameLoop();
-
-const client = new tmi.Client({
-  connection: {
-    secure: true,
-    reconnect: true
-  },
-  channels: [ 'codinggarden' ]
-});
-
-for (let i = 0; i < 10; i++) {
-  doDrop({ username: 'CJ' });
-}
-
-let hideLeaderBoardTimeout = setTimeout(() => {
-  leaderBoard.style.display = 'none';
-}, 90000);
-
-client.connect();
-
-client.on('message', (channel, { emotes, username, 'display-name': displayName }, message) => {
-  if (message.startsWith('!drop')) {
-    const name = displayName || username;
-    if (currentUsers[name]) return;
-    clearTimeout(hideLeaderBoardTimeout);
-    hideLeaderBoardTimeout = setTimeout(() => {
-      leaderBoard.style.display = 'none';
-    }, 90000);
-    const args = message.split(' ');
-    args.shift();
-    // const url = args.length ?  args[0].trim() : '';
-    if (emotes) {
-      const emoteIds = Object.keys(emotes);
-      const emote = emoteIds[Math.floor(Math.random() * emoteIds.length)];
-      doDrop({
-        url: `https://static-cdn.jtvnw.net/emoticons/v1/${emote}/2.0`,
-        username: name,
-      });
-    } else {
-      doDrop({
-        username: name,
-      });
-    }
-  }
-});
-		
-

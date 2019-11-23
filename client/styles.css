@@ -12,13 +12,13 @@ h4 {
 .leader-board {
   display: none;
   position: fixed;
-  top: 10px;
-  left: 10px;
-  background: rgba(0, 0, 0, 0.5);
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.3);
   color: white;
   font-weight: bold;
   font-family: 'Press Start 2P', sans-serif;
-  font-size: 2rem;
+  font-size: 1rem;
   padding: 2rem;
 }
 
@@ -52,7 +52,7 @@ h4 {
 
 .drop.landed.seedling-target {
   opacity: 0;
-  animation: fadeout 5s;
+  animation: fadeout 1s;
   transform-origin: bottom;
 }
 
