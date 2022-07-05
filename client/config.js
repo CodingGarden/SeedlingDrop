@@ -1,4 +1,6 @@
+const params = new URLSearchParams(window.location.search);
 export default {
-  messageServer: 'http://10.0.0.105:5000',
-  highScoreServer: 'http://10.0.0.105:9999',
+  messageServerApiKey: params.get('key') || localStorage.apiKey || '',
+  messageServer: 'https://api.coding.garden',
+  highScoreServer: 'http://10.0.0.104:9999',
 };

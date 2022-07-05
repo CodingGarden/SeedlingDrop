@@ -4,6 +4,10 @@ body {
   background: #333;
 }
 
+#__bs_notify__ {
+  display: none !important;
+}
+
 h4 {
   padding: 0;
   margin: 0;
@@ -18,8 +22,8 @@ h4 {
   color: white;
   font-weight: bold;
   font-family: 'Press Start 2P', sans-serif;
-  font-size: 1rem;
-  padding: 2rem;
+  font-size: 0.7rem;
+  padding: 1rem;
 }
 
 .target {
@@ -34,13 +38,14 @@ h4 {
 
 .drop {
   position: fixed;
-  width: 150px;
+  width: 56px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   transform: rotate(10deg);
   animation: sway 1s infinite alternate ease-in-out;
+  opacity: 0.7;
 }
 
 .drop.landed.no-target {
@@ -102,6 +107,12 @@ h4 {
   width: 100%;
   height: auto;
   border-radius: 50%;
+}
+
+.drop .custom-image {
+  width: 56px;
+  max-width: 200px;
+  max-height: 200px;
 }
 
 .seedling-container {

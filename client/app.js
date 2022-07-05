@@ -12,88 +12,93 @@ const highScoreClient = feathers();
 highScoreClient.configure(feathers.socketio(io(config.highScoreServer)));
 const highScoreService = highScoreClient.service('highscores');
 
-let hideLeaderBoardTimeout = setTimeout(() => {
-  leaderBoard.style.display = 'none';
-}, 90000);
+leaderBoard.style.display = 'none';
 
 let liveChatId = new Date().toLocaleDateString();
 
 (async () => {
-  const socket = io(config.messageServer);
-  liveChatId = await fetch(`${config.messageServer}/streams`)
-    .then(res => res.json())
-    .then(([ event ]) => {
-      if (event) {
-        return event.snippet.liveChatId;
-      }
-      return new Date().toLocaleDateString();
-    });
+  const messagesClient = feathers();
+  messagesClient.configure(feathers.socketio(io(`${config.messageServer}?key=${config.messageServerApiKey}`, {
+    timeout: 15000,
+    'connect timeout': 5000,
+    upgrade: false,
+    transports: ['websocket'],
+  })));
+  const commandService = messagesClient.service('twitch/commands');
+
   highScores = await highScoreService.find({
     query: {
       eventId: liveChatId,
+      created_at: {
+        $gt: new Date(),
+      }
     }
   });
-  console.log(highScores);
 
   renderLeaderBoard();
 
-  socket.on(`messages/${liveChatId}`, (messages) => {
-    messages.forEach(message => {
-      if (message.message.startsWith('!drop')) {
-        const username = message.author.displayName;
-        if (currentUsers[username]) return;
-        clearTimeout(hideLeaderBoardTimeout);
-        hideLeaderBoardTimeout = setTimeout(() => {
-          leaderBoard.style.display = 'none';
-        }, 90000);
-        const args = message.message.split(' ');
-        args.shift();
-        const arg = args.length ? args[0].trim() : '';
-        const emojis = twemoji.parse(arg, {
-          assetType: 'png'
+  commandService.on('created', (command) => {
+    console.log(command);
+    command.platform = 'twitch';
+    if (command.message.startsWith('!drop')) {
+      console.log(command.message);
+      const username = command.user.display_name;
+      if (currentUsers[username]) return;
+      // clearTimeout(hideLeaderBoardTimeout);
+      // hideLeaderBoardTimeout = setTimeout(() => {
+      //   leaderBoard.style.display = 'none';
+      // }, 90000);
+      const args = (command.parsedMessage || command.message).split(' ');
+      args.shift();
+      const arg = args.length ? args[0].trim() : '';
+      const emojis = twemoji.parse(arg, {
+        assetType: 'png'
+      });
+      if (emojis.length) {
+        const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+        doDrop({
+          username,
+          url: emoji.url,
+          platform: command.platform,
         });
-        if (emojis.length) {
-          const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+      } else if (arg === 'me') {
+        doDrop({
+          username,
+          url: command.user.profile_image_url,
+          isAvatar: true,
+          platform: command.platform,
+        });
+      } else {
+        const emoteMatches = arg.match(/!\[(.*)\]\((.*)\)/);
+        console.log(emoteMatches);
+        if (emoteMatches && emoteMatches[2].startsWith('http')) {
           doDrop({
             username,
-            url: emoji.url,
-            platform: message.platform,
-          });
-        } else if (arg === 'me') {
-          doDrop({
-            username,
-            url: message.author.profileImageUrl,
-            isAvatar: true,
-            platform: message.platform,
+            url: emoteMatches[2],
+            platform: command.platform,
           });
         } else {
-          const emoteMatches = arg.match(/!\[\]\((.*)\)/);
-          if (emoteMatches && emoteMatches[1].startsWith('http')) {
-            doDrop({
-              username,
-              url: emoteMatches[1],
-              platform: message.platform,
-            });
-          } else {
-            doDrop({
-              username,
-              platform: message.platform,
-            });
-          }
+          doDrop({
+            username,
+            platform: command.platform,
+          });
         }
       }
-    });
+    }
   });
 })();
 
 function createDropElement(url, username, isAvatar = false) {
   const div = document.createElement('div');
+  if (url) {
+    url = `https://external-content.duckduckgo.com/iu/?u=${url}`;
+  }
   div.className = 'drop';
+  // <h4 class="username">${username}</h4>
+  // <img class="chute" src="images/parachute.png" alt="">
   div.innerHTML = `
-  <h4 class="username">${username}</h4>
-  <img class="chute" src="images/parachute.png" alt="">
   <div class="user-image">
-    <img class="${isAvatar ? 'avatar' : ''}" src="${url || 'images/seed.png'}" />
+    <img class="${isAvatar ? 'avatar' : ''} custom-image" src="${url || 'images/seed.png'}" />
   </div>`;
   return div;
 }
@@ -273,7 +278,7 @@ function addSeedling(x, score, username) {
 }
 
 function renderLeaderBoard(showBoard = true) {
-  if (showBoard) leaderBoard.style.display = 'block';
+  // if (showBoard) leaderBoard.style.display = 'block';
   let uniqueUsers = {};
   highScores = highScores
     .sort((a, b) => b.score - a.score)
@@ -285,7 +290,7 @@ function renderLeaderBoard(showBoard = true) {
         uniqueUsers[h.username].score = h.score;
       }
       return false;
-    }).slice(0, 5);
+    }).slice(0, 7);
   const scores = leaderBoard.querySelector('.scores');
   scores.innerHTML = highScores.reduce((html, {
     score,
@@ -319,7 +324,7 @@ if(DEBUG) {
   let id = 1;
   const testDrop = () => {
     if (focused) {
-      doDrop({username: `test ${id++}`, url: '/images/seed.png', isAvatar: false, platform: 'debug'});
+      doDrop({username: `test ${id++}`, isAvatar: false, platform: 'debug'});
     }
     setTimeout(testDrop, Math.random() * 1000 * 2);
   };
