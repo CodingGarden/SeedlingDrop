@@ -15,7 +15,7 @@ var TypeName = twemoji.TypeName = 'emoji';
 function parse(text, options) {
   var assetType = options && options.assetType ? options.assetType : 'svg';
   var getTwemojiUrl = options && options.buildUrl ? options.buildUrl : function (codepoints, assetType) {
-    return assetType === 'png' ? 'https://twemoji.maxcdn.com/2/72x72/' + codepoints + '.png' : 'https://twemoji.maxcdn.com/2/svg/' + codepoints + '.svg';
+    return assetType === 'png' ? 'https://twemoji.maxcdn.com/v/latest/72x72/' + codepoints + '.png' : 'https://twemoji.maxcdn.com/v/latest/svg/' + codepoints + '.svg';
   };
 
   var entities = [];
